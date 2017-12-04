@@ -150,6 +150,24 @@ void usb_cb_ep3_out(uint8_t *usbdata, int len, int hardwired) {
     to_push.RDTR = tf[1];
     to_push.RIR = tf[0];
 
+    //***** RCP: TESLA - modify CAN message to enable steering control
+
+    // change inhibit of GTW_epasControl to WITH_BOTH
+    if (((to_push.RIR>>21) & 0x7FF) == 0x101) {
+      to_push.RDLR = to_push.RDLR | 0xC000;
+      int checksum = (((to_push.RDLR & 0xFF00) >> 8) + (to_push.RDLR & 0xFF) + 2) & 0xFF;
+      to_push.RDLR = to_push.RDLR & 0xFFFF;
+      to_push.RDLR = to_push.RDLR + (checksum << 16);
+    }
+        // change inhibit of EPB_epasControl to ALLOW
+    if (((to_push.RIR>>21) & 0x7FF) == 0x214) {
+      to_push.RDLR = to_push.RDLR | 0x1;
+      int checksum = (((to_push.RDLR & 0xFF00) >> 8) + (to_push.RDLR & 0xFF) + 0x16) & 0xFF;
+      to_push.RDLR = to_push.RDLR & 0xFFFF;
+      to_push.RDLR = to_push.RDLR + (checksum << 16);
+    }
+    //***** RCP: END TESLA special
+
     uint8_t bus_number = (to_push.RDTR >> 4) & CAN_BUS_NUM_MASK;
     can_send(&to_push, bus_number);
   }
