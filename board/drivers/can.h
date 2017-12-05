@@ -337,6 +337,13 @@ void can_rx(uint8_t can_number) {
     // can is live
     //pending_can_live = 1;
 
+    // add to my fifo
+    CAN_FIFOMailBox_TypeDef to_push;
+    to_push.RIR = CAN->sFIFOMailBox[0].RIR;
+    to_push.RDTR = CAN->sFIFOMailBox[0].RDTR;
+    to_push.RDLR = CAN->sFIFOMailBox[0].RDLR;
+    to_push.RDHR = CAN->sFIFOMailBox[0].RDHR;
+
     // Record the current car time in current_car_time (for use with double-pulling cruise stalk)
     if ((to_push.RIR>>21) == 0x318) {
       int hour = (to_push.RDLR & 0x1F000000) >> 24;
@@ -356,14 +363,6 @@ void can_rx(uint8_t can_number) {
         pending_can_live = 0;
       }
     }
-
-
-    // add to my fifo
-    CAN_FIFOMailBox_TypeDef to_push;
-    to_push.RIR = CAN->sFIFOMailBox[0].RIR;
-    to_push.RDTR = CAN->sFIFOMailBox[0].RDTR;
-    to_push.RDLR = CAN->sFIFOMailBox[0].RDLR;
-    to_push.RDHR = CAN->sFIFOMailBox[0].RDHR;
 
     // forwarding (panda only)
     #ifdef PANDA
