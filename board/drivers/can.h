@@ -84,7 +84,7 @@ int can_err_cnt = 0;
   CAN_TypeDef *cans[] = {CAN1, CAN2, CAN3};
   uint8_t bus_lookup[] = {0,1,2};
   uint8_t can_num_lookup[] = {0,1,2,-1};
-  int8_t can_forwarding[] = {-1,-1,-1,-1};
+  int8_t can_forwarding[] = {1,0,-1,-1}; // TESLA: CAN1 <-> CAN2
   uint32_t can_speed[] = {5000, 5000, 5000, 333};
   #define CAN_MAX 3
 #else
@@ -335,7 +335,28 @@ void can_rx(uint8_t can_number) {
     can_rx_cnt += 1;
 
     // can is live
-    pending_can_live = 1;
+    //pending_can_live = 1;
+
+    // Record the current car time in current_car_time (for use with double-pulling cruise stalk)
+    if ((to_push.RIR>>21) == 0x318) {
+      int hour = (to_push.RDLR & 0x1F000000) >> 24;
+      int minute = (to_push.RDHR & 0x3F00) >> 8;
+      int second = (to_push.RDLR & 0x3F0000) >> 16;
+      current_car_time = (hour * 3600) + (minute * 60) + second;
+    }
+
+    // Detect gear in drive (start recording when in drive)
+    if ((to_push.RIR>>21) == 0x118) {
+      // DI_torque2
+      int current_gear = (to_push.RDLR & 0x7000) >> 12;
+      if (current_gear == 4) {
+        // in Drive
+        pending_can_live = 1;
+      } else {
+        pending_can_live = 0;
+      }
+    }
+
 
     // add to my fifo
     CAN_FIFOMailBox_TypeDef to_push;
@@ -352,6 +373,23 @@ void can_rx(uint8_t can_number) {
         to_send.RDTR = to_push.RDTR;
         to_send.RDLR = to_push.RDLR;
         to_send.RDHR = to_push.RDHR;
+
+        if (bus_number == 0) { // TESLA modify CAN1 before sending to CAN2
+          if (((to_send.RIR>>21) & 0x7FF) == 0x101) {
+            to_send.RDLR = to_send.RDLR | 0xC000;
+            int checksum = (((to_send.RDLR & 0xFF00) >> 8) + (to_send.RDLR & 0xFF) + 2) & 0xFF;
+            to_send.RDLR = to_send.RDLR & 0xFFFF;
+            to_send.RDLR = to_send.RDLR + (checksum << 16);
+          }
+          // change inhibit of EPB_epasControl to ALLOW
+          if (((to_send.RIR>>21) & 0x7FF) == 0x214) {
+            to_send.RDLR = to_send.RDLR | 0x1;
+            int checksum = (((to_send.RDLR & 0xFF00) >> 8) + (to_send.RDLR & 0xFF) + 0x16) & 0xFF;
+            to_send.RDLR = to_send.RDLR & 0xFFFF;
+            to_send.RDLR = to_send.RDLR + (checksum << 16);
+          }
+        }
+
         can_send(&to_send, can_forwarding[bus_number]);
       }
     #endif
