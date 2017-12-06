@@ -8,7 +8,7 @@
 //      brake > 0mph
 
 static void tesla_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
-  if ((to_push->RIR>>21) == 0x45) {
+  /*if ((to_push->RIR>>21) == 0x45) {
     // 6 bits starting at position 0
     int lever_position = (to_push->RDLR & 0x3F);
   if (lever_position == 1) { // pull forward
@@ -20,7 +20,7 @@ static void tesla_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
   } else if (lever_position == 2) { // push backward
     // deactivate openpilot
     controls_allowed = 0;
-  }
+  }*/
 }
 
 // all commands: gas, brake and steering

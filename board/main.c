@@ -19,7 +19,6 @@
 #include "drivers/spi.h"
 #include "drivers/timer.h"
 
-
 // ***************************** fan *****************************
 
 void fan_init() {

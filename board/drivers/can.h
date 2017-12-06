@@ -345,12 +345,12 @@ void can_rx(uint8_t can_number) {
     to_push.RDHR = CAN->sFIFOMailBox[0].RDHR;
 
     // Record the current car time in current_car_time (for use with double-pulling cruise stalk)
-    if ((to_push.RIR>>21) == 0x318) {
+    /*if ((to_push.RIR>>21) == 0x318) {
       int hour = (to_push.RDLR & 0x1F000000) >> 24;
       int minute = (to_push.RDHR & 0x3F00) >> 8;
       int second = (to_push.RDLR & 0x3F0000) >> 16;
       current_car_time = (hour * 3600) + (minute * 60) + second;
-    }
+    }*/
 
     // Detect gear in drive (start recording when in drive)
     if ((to_push.RIR>>21) == 0x118) {
